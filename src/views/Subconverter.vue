@@ -196,7 +196,7 @@
                 </el-input>
               </el-form-item>
               <el-form-item label="订阅短链:">
-                <el-input class="copy-content" disabled v-model="customShortSubUrl">
+                <el-input class="copy-content" v-model="customShortSubUrl" placeholder="输入自定义短链接后缀，点击生成短链接可反复生成">
                   <el-button
                       slot="append"
                       v-clipboard:copy="customShortSubUrl"
@@ -219,7 +219,7 @@
                     style="width: 120px"
                     type="danger"
                     @click="makeShortUrl"
-                    :loading="loading"
+                    :loading="loading1"
                     :disabled="customSubUrl.length === 0"
                 >生成短链接
                 </el-button>
@@ -230,15 +230,15 @@
                     type="primary"
                     @click="dialogUploadConfigVisible = true"
                     icon="el-icon-upload"
-                    :loading="loading"
-                >进阶配置
+                    :loading="loading2"
+                >自定义配置
                 </el-button>
                 <el-button
                     style="width: 120px"
                     type="primary"
                     @click="dialogLoadConfigVisible = true"
                     icon="el-icon-copy-document"
-                    :loading="loading"
+                    :loading="loading3"
                 >从URL解析</el-button>
               </el-form-item>
               <el-form-item label-width="0px" style="text-align: center">
@@ -415,16 +415,15 @@ const configScriptBackend = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/api.ph
 const remoteConfigSample = process.env.VUE_APP_SUBCONVERTER_REMOTE_CONFIG
 const scriptConfigSample = process.env.VUE_APP_SCRIPT_CONFIG
 const filterConfigSample = process.env.VUE_APP_FILTER_CONFIG
-const defaultBackend = process.env.VUE_APP_SUBCONVERTER_DEFAULT_BACKEND + '/sub?'
+const defaultBackend = process.env.VUE_APP_SUBCONVERTER_DEFAULT_BACKEND
 const shortUrlBackend = process.env.VUE_APP_MYURLS_DEFAULT_BACKEND + '/short'
 const configUploadBackend = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/sub.php'
-const reDirectUrlAnalyze = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/go'
 const basicVideo = process.env.VUE_APP_BASIC_VIDEO
 const advancedVideo = process.env.VUE_APP_ADVANCED_VIDEO
 const tgBotLink = process.env.VUE_APP_BOT_LINK
 const yglink = process.env.VUE_APP_YOUTUBE_LINK
 const bzlink = process.env.VUE_APP_BILIBILI_LINK
-const downld = process.env.VUE_APP_PROXYTOOLS
+const downld = 'http://' + window.location.host + '/download.html'
 export default {
   data() {
     return {
@@ -463,24 +462,22 @@ export default {
           "sub.cm": "https://sub.cm/short",
         },
         customBackend: {
-          "本地局域网版后端": "http://127.0.0.1:25500/sub?",
-          "肥羊增强型后端【vless+hysteria】": "https://api.v1.mk/sub?",
-          "肥羊备用后端【vless+hysteria】": "https://sub.d1.mk/sub?",
-          "つつ-多地防失联【负载均衡+国内优化】": "https://api.tsutsu.one/sub?",
-          nameless13提供: "https://www.nameless13.com/sub?",
-          subconverter作者提供: "https://sub.xeton.dev/sub?",
-          "sub-web作者提供": "https://api.wcc.best/sub?",
-          "sub作者&lhie1提供": "https://api.dler.io/sub?",
+          "肥羊增强型后端【vless+hysteria】": "https://api.v1.mk",
+          "肥羊备用后端【vless+hysteria】": "https://sub.d1.mk",
+          "つつ-多地防失联【负载均衡+国内优化】": "https://api.tsutsu.one",
+          nameless13提供: "https://www.nameless13.com",
+          subconverter作者提供: "https://sub.xeton.dev",
+          "sub-web作者提供": "https://api.wcc.best",
+          "sub作者&lhie1提供": "https://api.dler.io",
         },
         backendOptions: [
-          {value: "http://127.0.0.1:25500/sub?"},
-          {value: "https://api.v1.mk/sub?"},
-          {value: "https://sub.d1.mk/sub?"},
-          {value: "https://api.tsutsu.one/sub?"},
-          {value: "https://www.nameless13.com/sub?"},
-          {value: "https://sub.xeton.dev/sub?"},
-          {value: "https://api.wcc.best/sub?"},
-          {value: "https://api.dler.io/sub?"},
+          {value: "https://api.v1.mk"},
+          {value: "https://sub.d1.mk"},
+          {value: "https://api.tsutsu.one"},
+          {value: "https://www.nameless13.com"},
+          {value: "https://sub.xeton.dev"},
+          {value: "https://api.wcc.best"},
+          {value: "https://api.dler.io"},
         ],
         remoteConfig: [
           {
@@ -712,6 +709,10 @@ export default {
               {
                 label: "ProxyStorage自用",
                 value: "https://unpkg.com/proxy-script/config/Clash/clash.ini"
+              },
+              {
+                label: "ShellClash修改版规则 (by UlinoyaPed)",
+                value: "https://github.com/UlinoyaPed/ShellClash/raw/master/rules/ShellClash.ini"
               }
             ]
           },
@@ -876,7 +877,7 @@ export default {
       form: {
         sourceSubUrl: "",
         clientType: "",
-        customBackend: "https://api.v1.mk/sub?",
+        customBackend: this.getUrlParam() == "" ? "https://api.v1.mk" : this.getUrlParam(),
         shortType: "https://v1.mk/short",
         remoteConfig: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini",
         excludeRemarks: "",
@@ -908,7 +909,9 @@ export default {
           }
         }
       },
-      loading: false,
+      loading1: false,
+      loading2: false,
+      loading3: false,
       customSubUrl: "",
       customShortSubUrl: "",
       dialogUploadConfigVisible: false,
@@ -947,6 +950,17 @@ export default {
   methods: {
     selectChanged() {
       this.getBackendVersion();
+    },
+    getUrlParam() {
+      let query = window.location.search.substring(1);
+      let vars = query.split('&');
+      for (let i = 0; i < vars.length; i++) {
+          var pair = vars[i].split('=');
+          if (pair[0] == "backend") {
+              return decodeURIComponent(pair[1]);
+          }
+      }
+      return "";
     },
     anhei() {
       const getLocalTheme = window.localStorage.getItem("localTheme");
@@ -1040,7 +1054,7 @@ export default {
       sourceSub = sourceSub.replace(/(\n|\r|\n\r)/g, "|");
       this.customSubUrl =
           backend +
-          "target=" +
+          "/sub?target=" +
           this.form.clientType +
           "&url=" +
           encodeURIComponent(sourceSub) +
@@ -1120,9 +1134,12 @@ export default {
           this.form.shortType === ""
               ? shortUrlBackend
               : this.form.shortType;
-      this.loading = true;
+      this.loading1 = true;
       let data = new FormData();
       data.append("longUrl", btoa(this.customSubUrl));
+      if (this.customShortSubUrl.trim() != "") {
+          data.append("shortKey",this.customShortSubUrl.trim().indexOf("http") < 0 ? this.customShortSubUrl.trim() : "");
+      }
       this.$axios
           .post(duan, data, {
             header: {
@@ -1142,11 +1159,11 @@ export default {
             this.$message.error("短链接获取失败");
           })
           .finally(() => {
-            this.loading = false;
+            this.loading1 = false;
           });
     },
     confirmUploadConfig() {
-      this.loading = true;
+      this.loading2 = true;
       let data = new FormData();
       data.append("config", encodeURIComponent(this.uploadConfig));
       this.$axios
@@ -1171,41 +1188,32 @@ export default {
             this.$message.error("远程配置上传失败");
           })
           .finally(() => {
-            this.loading = false;
+            this.loading2 = false;
           });
     },
     analyzeUrl() {
-      if (this.loadConfig.indexOf("target")!== -1){
-        return this.loadConfig
+      if (this.loadConfig.indexOf("target") !== -1) {
+        return this.loadConfig;
       } else {
-      this.loading = true
-      let data = new FormData();
-      data.append("shortUrl", btoa(this.loadConfig));
-      let realurl = this.$axios
-          .post(reDirectUrlAnalyze, data, {
-            header: {
-              "Content-Type": "application/form-data; charset=utf-8"
-            }
-          })
-          .then(res => {
-            if (res.data.code === 0 && res.data.data !== "") {
-              return res.data.data
-            } else {
-              this.$message.error("短链接解析失败：" + res.data.msg);
-            }
-          })
-          .catch(() => {
-            this.$message.error("短链接解析失败");
-          })
-          .finally(() => {
-            this.loading = false;
-          });
-          return realurl
+        this.loading3 = true;
+        return (async () => {
+          try {
+            let response = await fetch(this.loadConfig, {
+              method: "GET",
+              redirect: "follow",
+            });
+            return response.url;
+          } catch (e) {
+            this.$message.error("解析短链接失败，请检查短链接服务端是否配置跨域：" + e)
+          } finally {
+            this.loading3 = false;
+          }
+        })();
       }
     },
     confirmLoadConfig() {
-      if (this.loadConfig.trim() === ""){
-        this.$message.error("订阅链接不能为空");
+      if (this.loadConfig.trim() === "" || !this.loadConfig.trim().includes("http")){
+        this.$message.error("待解析的订阅链接不合法");
         return false;
       }
       (async () => {
@@ -1216,7 +1224,7 @@ export default {
         this.$message.error("请输入正确的订阅地址!");
         return;
       }
-      this.form.customBackend = url.origin + url.pathname + "?"
+      this.form.customBackend = url.origin
       let param = new URLSearchParams(url.search);
       if (param.get("target")){
         let target = param.get("target");
@@ -1331,7 +1339,7 @@ export default {
         this.$message.error("订阅链接不能为空");
         return false;
       }
-      this.loading = true;
+      this.loading2 = true;
       let data = this.renderPost();
       data.append("sortscript",encodeURIComponent(this.uploadScript));
       data.append("filterscript",encodeURIComponent(this.uploadFilter));
@@ -1358,13 +1366,13 @@ export default {
             this.$message.error("自定义JS上传失败");
           })
           .finally(() => {
-            this.loading = false;
+            this.loading2 = false;
           })
     },
     getBackendVersion() {
       this.$axios
           .get(
-              this.form.customBackend.substring(0, this.form.customBackend.length - 5) + "/version"
+              this.form.customBackend + "/version"
           )
           .then(res => {
             this.backendVersion = res.data.replace(/backend\n$/gm, "");
